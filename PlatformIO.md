@@ -1,6 +1,6 @@
 # Note something worth noting
 _Started Oct 7th, written by Chainplain_
-
+## Application Notes
 Let us first explain the following code.
 ``` C
 #include <main.h>
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 ```
 
 First, we can see the function 
-``` 
+``` C
 osThreadDef(ledControl, vTaskLedBreathing, osPriority::osPriorityIdle, 0, 256)
 ```
 
@@ -75,3 +75,84 @@ Here is a breakdown of the parameters:
 - `thread_function`: This is the name of the function that will be executed when the thread is created. It should be of type void and take no arguments.
 - `thread_priority`: This specifies the priority of the thread. FreeRTOS uses numerical priorities, where a lower number represents a higher priority. For example, priority 0 is the highest priority, while priority 15 is the lowest.
 - `thread_instances`: This parameter specifies the number of instances of the thread that can run concurrently. In most cases, you would only need a single instance of a thread, so this value is typically set to 1.
+- 
+Then let us see the vTaskUart:
+``` C
+void vTaskUart(void *pvParameters)
+{
+	uart_init();
+
+	while (true)
+	{
+		for (int i = 0; i < USE_UART_NUM; i++)
+		{
+			if (uart_handle[i] != NULL)
+				uart_handle[i]->func_rx_check(uart_handle[i]);
+		}
+		vTaskDelayMs(RX_ROLLING_INTERVEL_MS);
+	}
+
+	// 如果任务不是永久性的需要调用 vTaskDelete 删除任务
+	//vTaskDelete(NULL);
+}
+```
+
+We want to first send something out, we have to ascertain which UART we are use.
+``` C
+void uart_init(void)
+{
+	uart_handle[0] = rs232_computer_init();
+}
+```
+Follow this clue, we further find 
+``` C
+UART232_Handle *rs232_computer_init(void)
+{
+    userComm = &uartComm;
+    rs232_handle = &uart232_handle;
+    uart_computer_init(115200);
+    return rs232_handle;
+}
+```
+Futher, the uart is defined as 
+``` C
+uart232_handle.huart = &UartHandle;
+```
+
+And the uart handle is defined as 
+``` C
+typedef struct __UART232_Handle
+{
+	UART_HandleTypeDef *huart;
+	
+	// 与DMA有关的变量
+	uint32_t unReadIndex; // 代表一个有效桢的第一个数据的位置
+	uint32_t unCheckIndex; // 代表一个有效桢的最后一个数据的位置
+	uint16_t toBeReadLength;
+	
+	uint32_t txBufferSize;
+	uint32_t rxBufferSize;	
+	uint8_t *txCmdBuffer;
+	uint8_t *txDataBuffer;
+	uint8_t *txBuffer;
+	uint8_t *rxBuffer;
+	
+	void (* func_data_analysis) (struct __UART232_Handle * hrs232);
+	void (* func_rx_check) (struct __UART232_Handle * hrs232);
+	int (* func_crc_check) (struct __UART232_Handle * hrs232);
+	UART_FRAME rxFrame;
+	UART_FRAME txFrame;
+}UART232_Handle;
+```
+
+Further, we can find ` UartHandle.Instance = USART_COMPUTER;`,
+and we also have `#define USART_COMPUTER UART5`.
+
+## Shematic
+From stm32f405rg.pdf we find:
+![image](https://github.com/Chainplain/OpenNotes_Coding/assets/13344614/7afe674a-312d-4b1e-a581-bdc7e58de5aa)
+![image](https://github.com/Chainplain/OpenNotes_Coding/assets/13344614/5c537dbf-e4c9-4e20-885f-8c02962eee3b)
+
+and the Circuit schematic diagram
+![image](https://github.com/Chainplain/OpenNotes_Coding/assets/13344614/da58ab91-3703-4b5a-93a0-bd9e28a3c31f)
+![image](https://github.com/Chainplain/OpenNotes_Coding/assets/13344614/c9f687dd-4bb3-457e-8cd5-61d0c30b7f9c)
