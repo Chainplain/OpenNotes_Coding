@@ -1,5 +1,7 @@
 # Note something worth noting
 _Started Oct 7th, written by Chainplain_
+
+Let us first explain the following code.
 ``` C
 #include <main.h>
 
@@ -61,5 +63,15 @@ int main(int argc, char **argv)
 
   osKernelStart();
 }
-
 ```
+
+First, we can see the function 
+``` 
+osThreadDef(ledControl, vTaskLedBreathing, osPriority::osPriorityIdle, 0, 256)
+```
+
+Here is a breakdown of the parameters:
+- `thread_name`: This is a user-defined name for the thread, which can be used to refer to the thread in other parts of the code.
+- `thread_function`: This is the name of the function that will be executed when the thread is created. It should be of type void and take no arguments.
+- `thread_priority`: This specifies the priority of the thread. FreeRTOS uses numerical priorities, where a lower number represents a higher priority. For example, priority 0 is the highest priority, while priority 15 is the lowest.
+- `thread_instances`: This parameter specifies the number of instances of the thread that can run concurrently. In most cases, you would only need a single instance of a thread, so this value is typically set to 1.
